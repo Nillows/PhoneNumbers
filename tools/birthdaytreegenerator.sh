@@ -1,9 +1,11 @@
 #!/bin/bash
 
 ########################################
-# Directory where all output will be stored
+# Configuration
 ########################################
 output_dir="./output"
+start_year=1900
+end_year=2050
 
 ########################################
 # Month Dictionaries
@@ -13,7 +15,7 @@ long_months=("january" "february" "march" "april" "may" "june" "july" "august" "
 cases=("lower" "capital" "upper")
 
 ########################################
-# Predefined “Big Matrix” for Days (1..31)
+# Day name mappings
 ########################################
 declare -A day_cardinals day_ordinals
 day_cardinals[1]="one";      day_ordinals[1]="first"
@@ -49,7 +51,7 @@ day_cardinals[30]="thirty";      day_ordinals[30]="thirtieth"
 day_cardinals[31]="thirtyone";   day_ordinals[31]="thirtyfirst"
 
 ########################################
-# Numeric suffix function
+# Numeric Suffix Function
 ########################################
 numeric_suffix() {
     local d=$1
@@ -65,7 +67,7 @@ numeric_suffix() {
 }
 
 ########################################
-# Generate numeric day permutations
+# Numeric Day Variants
 ########################################
 get_numeric_day_variants() {
     local d=$1
@@ -75,12 +77,12 @@ get_numeric_day_variants() {
     local variants=()
     # Simple numeric
     variants+=( "$d" )
-    # With suffix in lower and upper
+    # With suffix (lower and upper)
     variants+=( "${d}${sfx,,}" "${d}${sfx^^}" )
 
     # Leading-zero numeric
     variants+=( "$day2d" )
-    # With suffix in lower and upper for leading-zero
+    # With suffix with leading zero
     variants+=( "${day2d}${sfx,,}" "${day2d}${sfx^^}" )
 
     echo "${variants[@]}"
@@ -88,7 +90,6 @@ get_numeric_day_variants() {
 
 ########################################
 # Generate permutations for a single date (Y, M, D)
-# NOTE: This function only echoes results to stdout.
 ########################################
 generate_permutations_for_date() {
     local year4=$1
@@ -174,25 +175,75 @@ generate_permutations_for_date() {
 }
 
 ########################################
-# Main Loop: Generate directory structure and files
+# Main Generation Loop
 ########################################
 mkdir -p "$output_dir"
 
-for year in {1900..2050}; do
-    year_dir="$output_dir/$year"
-    mkdir -p "$year_dir"
-    for month in {1..12}; do
-        month_name_lower=${short_months[$((month - 1))],,}
-        mkdir -p "$year_dir/$month_name_lower"
-        for day in {1..31}; do
-            # Check if date is valid
-            if date -d "$year-$(printf "%02d" "$month")-$(printf "%02d" "$day")" &>/dev/null; then
-                day_file="$year_dir/$month_name_lower/$(printf "%02d.txt" "$day")"
-                # Generate and store unique permutations
-                generate_permutations_for_date "$year" "$month" "$day" | sort -u > "$day_file"
+# Determine decades for the given range
+start_decade=$(( (start_year/10)*10 ))
+end_decade=$(( (end_year/10)*10 ))
+
+for decade in $(seq $start_decade 10 $end_decade); do
+    decade_dir="$output_dir/${decade}s"
+    mkdir -p "$decade_dir"
+
+    for year in $(seq $decade $((decade+9))); do
+        (( year > end_year )) && break
+
+        year_dir="$decade_dir/$year"
+        mkdir -p "$year_dir"
+
+        # Process each month
+        for month in {1..12}; do
+            month_name_lower=${short_months[$((month - 1))],,}
+            month_dir="$year_dir/$month_name_lower"
+            mkdir -p "$month_dir"
+
+            # Generate daily files
+            for day in {1..31}; do
+                # Check valid date
+                if date -d "$year-$(printf "%02d" "$month")-$(printf "%02d" "$day")" &>/dev/null; then
+                    day_file="$month_dir/$(printf "%02d.txt" "$day")"
+                    generate_permutations_for_date "$year" "$month" "$day" > "$day_file"
+                fi
+            done
+
+            # Create month-level all.txt sorted by day file name
+            (
+                cd "$month_dir"
+                # Sort day files numerically by name (01.txt, 02.txt,...)
+                ls [0-9][0-9].txt | sort > /tmp/dayfiles.txt
+                cat $(cat /tmp/dayfiles.txt) > all.txt
+                rm /tmp/dayfiles.txt
+            )
+        done
+
+        # Create year-level all.txt by concatenating each month's all.txt in chronological order
+        (
+            cd "$year_dir"
+            # We know the exact month order, so just loop through them
+            rm -f all.txt
+            for m_idx in {1..12}; do
+                m_name=${short_months[$((m_idx - 1))],,}
+                if [ -f "$m_name/all.txt" ]; then
+                    cat "$m_name/all.txt" >> all.txt
+                fi
+            done
+        )
+
+    done
+
+    # Create decade-level all.txt by concatenating each year's all.txt in ascending order of years
+    (
+        cd "$decade_dir"
+        rm -f all.txt
+        # List years numerically sorted
+        for y in $(ls -d [0-9]* | sort -n); do
+            if [ -f "$y/all.txt" ]; then
+                cat "$y/all.txt" >> all.txt
             fi
         done
-    done
+    )
 done
 
-echo "Comprehensive directory structure with date wordlists created in $output_dir"
+echo "All data generated successfully in $output_dir"
