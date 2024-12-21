@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Curl Command Generator</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="script.js" defer></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Curl Command Generator</h1>
+        
+        <div class="row">
+            <!-- Single Date Section -->
+            <div class="column">
+                <h2>Single Date</h2>
+                <div class="input-group">
+                    <label for="date">Single Date:</label>
+                    <input type="date" id="date" required>
+                </div>
+                <div class="input-group">
+                    <label for="dateType">Select Granularity:</label>
+                    <select id="dateType">
+                        <option value="day">Day</option>
+                        <option value="month">Month</option>
+                        <option value="year">Year</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Date Range Section -->
+            <div class="column">
+                <h2>Date Range</h2>
+                <div class="input-group">
+                    <label for="startDate">Start Date:</label>
+                    <input type="date" id="startDate" required>
+                </div>
+                <div class="input-group">
+                    <label for="endDate">End Date:</label>
+                    <input type="date" id="endDate" required>
+                </div>
+            </div>
+        </div>
+
+        <!-- Common Options -->
+        <div class="input-group">
+            <label for="outputOption">Output Option:</label>
+            <select id="outputOption">
+                <option value="multi">Multiple Files</option>
+                <option value="single">Single Combined File</option>
+            </select>
+        </div>
+
+        <!-- Generate and Copy Buttons -->
+        <div class="button-container">
+            <button id="generate" class="action-btn">Generate Commands</button>
+            <!-- Added id="copyButton" to match JavaScript -->
+            <button id="copyButton" class="action-btn copy-btn">Copy to Clipboard</button>
+        </div>
+
+        <!-- Output Section -->
+        <div class="output-group">
+            <label for="output">Generated Commands:</label>
+            <textarea id="output" rows="10" readonly></textarea>
+        </div>
+    </div>
+</body>
+</html>
